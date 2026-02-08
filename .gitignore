@@ -1,0 +1,4 @@
+# OpenTofu / Terraform
+.terraform/
+*.tfstate
+*.tfstate.backup
