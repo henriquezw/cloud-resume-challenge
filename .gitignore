@@ -1,4 +1,38 @@
-# OpenTofu / Terraform
-.terraform/
+# --- OpenTofu / Terraform ---
+# The local state file (DANGER: Contains secrets!)
 *.tfstate
-*.tfstate.backup
+*.tfstate.*
+
+# Crash logs
+crash.log
+crash.*.log
+
+# Exclude sensitive variables
+*.tfvars
+*.tfvars.json
+
+# Ignore override files as they are usually local customizations
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# Ignore the .terraform directory (Plugins & Modules)
+.terraform/
+.terraform.lock.hcl
+
+# Plan files (Contains diffs of your infra)
+*.tfplan
+
+# --- Python (For your Lambda functions later) ---
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+env/
+
+# --- IDE / Editor ---
+.vscode/
+.idea/
+.DS_Store
