@@ -36,3 +36,135 @@ resource "aws_dynamodb_table" "visitor_count" {
     type = "S" # S = String
   }
 }
+# --- VARIABLES ---
+locals {
+  domain_name = "henriquezw.click"
+}
+
+# --- SSL CERTIFICATE (HTTPS) ---
+# 1. Request the certificate
+resource "aws_acm_certificate" "cert" {
+  domain_name       = local.domain_name
+  validation_method = "DNS"
+
+  lifecycle {
+    create_before_destroy = true
+  }
+}
+
+# 2. Get the Hosted Zone (DNS Box) that AWS created when you bought the domain
+data "aws_route53_zone" "my_zone" {
+  name         = local.domain_name
+  private_zone = false
+}
+
+# 3. Create the validation record (Prove you own the domain)
+resource "aws_route53_record" "cert_validation" {
+  for_each = {
+    for dvo in aws_acm_certificate.cert.domain_validation_options : dvo.domain_name => dvo
+  }
+
+  allow_overwrite = true
+  name            = each.value.resource_record_name
+  records         = [each.value.resource_record_value]
+  ttl             = 60
+  type            = each.value.resource_record_type
+  zone_id         = data.aws_route53_zone.my_zone.zone_id
+}
+
+# 4. Wait for validation to complete
+resource "aws_acm_certificate_validation" "cert_validate" {
+  certificate_arn         = aws_acm_certificate.cert.arn
+  validation_record_fqdns = [for record in aws_route53_record.cert_validation : record.fqdn]
+}
+
+# --- CLOUDFRONT (The CDN) ---
+# 1. Create access control (OAC) so only CloudFront can read S3
+resource "aws_cloudfront_origin_access_control" "oac" {
+  name                              = "s3-oac"
+  description                       = "Grant CloudFront access to S3"
+  origin_access_control_origin_type = "s3"
+  signing_behavior                  = "always"
+  signing_protocol                  = "sigv4"
+}
+
+# 2. The Distribution itself
+resource "aws_cloudfront_distribution" "cdn" {
+  origin {
+    domain_name              = aws_s3_bucket.website_bucket.bucket_regional_domain_name
+    origin_id                = "S3-Origin"
+    origin_access_control_id = aws_cloudfront_origin_access_control.oac.id
+  }
+
+  enabled             = true
+  is_ipv6_enabled     = true
+  default_root_object = "index.html"
+  aliases             = [local.domain_name]
+
+  default_cache_behavior {
+    allowed_methods  = ["GET", "HEAD"]
+    cached_methods   = ["GET", "HEAD"]
+    target_origin_id = "S3-Origin"
+
+    forwarded_values {
+      query_string = false
+      cookies {
+        forward = "none"
+      }
+    }
+
+    viewer_protocol_policy = "redirect-to-https"
+    min_ttl                = 0
+    default_ttl            = 3600
+    max_ttl                = 86400
+  }
+
+  viewer_certificate {
+    acm_certificate_arn      = aws_acm_certificate.cert.arn
+    ssl_support_method       = "sni-only"
+    minimum_protocol_version = "TLSv1.2_2021"
+  }
+
+  restrictions {
+    geo_restriction {
+      restriction_type = "none"
+    }
+  }
+}
+
+# --- S3 BUCKET POLICY (Permission) ---
+# Allow CloudFront to read the bucket
+resource "aws_s3_bucket_policy" "allow_cloudfront" {
+  bucket = aws_s3_bucket.website_bucket.id
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid       = "AllowCloudFrontServicePrincipal"
+        Effect    = "Allow"
+        Principal = { Service = "cloudfront.amazonaws.com" }
+        Action    = "s3:GetObject"
+        Resource  = "${aws_s3_bucket.website_bucket.arn}/*"
+        Condition = {
+          StringEquals = {
+            "AWS:SourceArn" = aws_cloudfront_distribution.cdn.arn
+          }
+        }
+      }
+    ]
+  })
+}
+
+# --- ROUTE 53 (DNS) ---
+# Point the domain to CloudFront
+resource "aws_route53_record" "www" {
+  zone_id = data.aws_route53_zone.my_zone.zone_id
+  name    = local.domain_name
+  type    = "A"
+
+  alias {
+    name                   = aws_cloudfront_distribution.cdn.domain_name
+    zone_id                = aws_cloudfront_distribution.cdn.hosted_zone_id
+    evaluate_target_health = false
+  }
+}
