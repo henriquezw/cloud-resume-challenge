@@ -1,20 +1,290 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>Hello World</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Henrique Derlam Zwetsch - Cloud Resume</title>
     <style>
-        body{font-family:system-ui,-apple-system,Segoe UI,Roboto,"Helvetica Neue",Arial;background:#f7f9fc;color:#111;display:flex;align-items:center;justify-content:center;height:100vh;margin:0}
-        .container{text-align:center}
-        h1{font-size:3rem;margin:0}
-        p{color:#555;margin-top:.5rem}
+        :root {
+            --primary-color: #2c3e50;
+            --secondary-color: #34495e;
+            --accent-color: #3498db;
+            --bg-color: #f4f7f6;
+            --text-color: #333;
+            --section-bg: #ffffff;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: var(--text-color);
+            background-color: var(--bg-color);
+            margin: 0;
+            padding: 0;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 40px auto;
+            background: var(--section-bg);
+            padding: 40px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            border-radius: 8px;
+        }
+
+        header {
+            text-align: center;
+            border-bottom: 2px solid var(--accent-color);
+            padding-bottom: 20px;
+            margin-bottom: 30px;
+        }
+
+        h1 {
+            color: var(--primary-color);
+            margin-bottom: 5px;
+            font-size: 2.5em;
+        }
+
+        .contact-info {
+            color: var(--secondary-color);
+            font-size: 1.1em;
+            margin-bottom: 20px;
+        }
+
+        .contact-info a {
+            color: var(--accent-color);
+            text-decoration: none;
+            margin: 0 10px;
+        }
+
+        h2 {
+            color: var(--primary-color);
+            border-left: 5px solid var(--accent-color);
+            padding-left: 15px;
+            margin-top: 30px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-size: 1.4em;
+        }
+
+        .job {
+            margin-bottom: 25px;
+        }
+
+        .job-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            margin-bottom: 10px;
+        }
+
+        .job-title {
+            font-weight: bold;
+            font-size: 1.1em;
+            color: var(--primary-color);
+        }
+
+        .company {
+            font-style: italic;
+            color: var(--secondary-color);
+        }
+
+        .date {
+            color: #7f8c8d;
+            font-size: 0.9em;
+        }
+
+        ul {
+            list-style-type: disc;
+            margin-left: 20px;
+            padding-left: 0;
+        }
+
+        li {
+            margin-bottom: 8px;
+        }
+
+        .skills-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+
+        .skill-category {
+            font-weight: bold;
+            color: var(--primary-color);
+            margin-bottom: 5px;
+        }
+
+        footer {
+            text-align: center;
+            margin-top: 50px;
+            padding-top: 20px;
+            border-top: 1px solid #eee;
+            font-size: 0.9em;
+            color: #7f8c8d;
+        }
+
+        /* Visitor Counter Styling */
+        #visitor-counter {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 20px;
+            display: inline-block;
+            margin-top: 15px;
+            font-weight: bold;
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                margin: 0;
+                border-radius: 0;
+                padding: 20px;
+            }
+            .job-header {
+                flex-direction: column;
+            }
+        }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>Hello, world!</h1>
-        <p>testing</p>
-    </div>
+
+<div class="container">
+    <header>
+        <h1>Henrique Derlam Zwetsch</h1>
+        <div class="contact-info">
+            Porto Alegre, Brazil &bull; 
+            <a href="mailto:henriquederlam@gmail.com">henriquederlam@gmail.com</a> &bull; 
+            <a href="#">LinkedIn</a>
+        </div>
+        <p class="summary">
+            Versatile software engineer with four years of experience in high-impact Research and Development environments. A generalist professional with a strong focus on continuous learning, rapid adaptation, and delivering business value throughout the entire software development life cycle. Proven success in building telemetry pipelines and improving software security and reliability in enterprise environments.
+        </p>
+    </header>
+
+    <section>
+        <h2>Experience</h2>
+
+        <div class="job">
+            <div class="job-header">
+                <div>
+                    <span class="job-title">Software Engineer I (HP Z Boost)</span><br>
+                    <span class="company">HP Inc.</span>
+                </div>
+                <span class="date">Mid-2024 - Present</span>
+            </div>
+            <ul>
+                <li>Enabled data-driven product decisions by designing and implementing a telemetry data pipeline using GCP BigQuery, Dataform, and Looker Studio.</li>
+                <li>Developed a solution using GitHub Actions and Python to automate project metric reporting (e.g., issue cycle time, story points) for executive review.</li>
+                <li>Created a Python data processing automation (Github Actions) to dynamically generate a GitHub Pages site for internal data analysis.</li>
+                <li>Co-developed a solution to automate the digital signing of solution binaries and Windows installer using Wix, improving security and release efficiency.</li>
+                <li>Ensured software quality and reliability by performing end-to-end testing and increasing unit test coverage to meet internal compliance standards.</li>
+            </ul>
+        </div>
+
+        <div class="job">
+            <div class="job-header">
+                <div>
+                    <span class="job-title">Software Engineer Intern (HP Anyware)</span><br>
+                    <span class="company">HP Inc.</span>
+                </div>
+                <span class="date">2023 - 2024</span>
+            </div>
+            <ul>
+                <li>Delivered new features and enhancements for the HP Anyware platform across the ReactJS front-end and back-end microservices, ensuring code quality with comprehensive unit tests.</li>
+                <li>Implemented a security hardening process by integrating a Trivy scan to generate container vulnerability reports for the Kubernetes cluster.</li>
+                <li>Created Datadog dashboards for monitoring solution hardware usage and conducted performance profiling using the Datadog Agent.</li>
+                <li>Optimized Azure Cosmos DB by refining indexes, resulting in significantly reduced RU (Request Unit) costs.</li>
+            </ul>
+        </div>
+
+        <div class="job">
+            <div class="job-header">
+                <div>
+                    <span class="job-title">Support and Operations Engineer Intern (HPID)</span><br>
+                    <span class="company">HP Inc.</span>
+                </div>
+                <span class="date">2022 - 2023</span>
+            </div>
+            <ul>
+                <li>Reduced manual support workload by maintaining and enhancing a Python automation that auto-resolved recurring N2 Jira tickets.</li>
+                <li>Leveraged Elasticsearch, Kibana, and Grafana to monitor system health and accelerate root cause analysis during troubleshooting tasks.</li>
+                <li>Developed a Python Lambda function to manage backup EBS volumes, including SNS email notifications, reducing monthly operational costs by approximately US$10,000.</li>
+                <li>Created a solution to automate the renewal of digital certificates for HPID domains using EC2, Shell scripting, AWS KMS, Certbot, and DigiCert CA.</li>
+            </ul>
+        </div>
+
+        <div class="job">
+            <div class="job-header">
+                <div>
+                    <span class="job-title">Software Engineer Intern</span><br>
+                    <span class="company">LIS (HP Software Innovation Lab - PUCRS)</span>
+                </div>
+                <span class="date">Aug 2021 - Sep 2022</span>
+            </div>
+            <ul>
+                <li>Architected a synthetic dataset generator using Python and HTML to create annotated table images, directly enabling the fine-tuning and training of a MMDetection model for a computer vision accessibility project.</li>
+                <li>Contributed to a DevOps project for automating the management of digital certificates using ReactJS, NodeJS, AWS Lambda, Secrets Manager, AWS RDS Aurora, Route 53, Cognito, AWS SAM, and GitHub Actions for CI/CD.</li>
+            </ul>
+        </div>
+    </section>
+
+    <section>
+        <h2>Technical Skills</h2>
+        <div class="skills-grid">
+            <div>
+                <div class="skill-category">Languages</div>
+                Python, TypeScript, SQL, Shell Scripting
+            </div>
+            <div>
+                <div class="skill-category">Cloud & DevOps</div>
+                AWS (Lambda, EC2, RDS, EBS, KMS, SAM), GCP, Docker, Kubernetes, GitHub Actions
+            </div>
+            <div>
+                <div class="skill-category">Frameworks</div>
+                ReactJS, NodeJS
+            </div>
+            <div>
+                <div class="skill-category">Databases</div>
+                Azure Cosmos DB, AWS RDS Aurora, Google BigQuery
+            </div>
+            <div>
+                <div class="skill-category">Observability</div>
+                Datadog, Elasticsearch, Kibana, Grafana, Looker Studio
+            </div>
+        </div>
+    </section>
+
+    <section>
+        <h2>Education</h2>
+        <div class="job-header">
+            <div>
+                <span class="job-title">Bachelor’s in Software Engineering</span><br>
+                <span class="company">PUCRS</span>
+            </div>
+            <span class="date">2019 - 2024</span>
+        </div>
+    </section>
+
+    <footer>
+        <p>This resume is deployed using AWS S3, CloudFront, Route 53, and OpenTofu.</p>
+        <div id="visitor-counter">
+            Visitor Count: <span id="count">Loading...</span>
+        </div>
+    </footer>
+</div>
+
+<script>
+    // This script will call your API Gateway later
+    // For now, it just logs to console
+    console.log("Resume Loaded.");
+    
+    // Future code for Issue #5:
+    // fetch('YOUR_API_GATEWAY_URL')
+    //     .then(response => response.json())
+    //     .then(data => document.getElementById('count').innerText = data.count);
+</script>
+
 </body>
 </html>
