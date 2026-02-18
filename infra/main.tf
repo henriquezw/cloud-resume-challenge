@@ -170,7 +170,7 @@ resource "aws_route53_record" "www" {
 }
 # Resource for AWS OIDC indentity provider that trusts Github, this will tell AWS that GH tokens are ok to be trusted
 resource "aws_iam_openid_connect_provider" "github" {
-  url             = "https://token.actions.GitHubusercontent.com" # GH's OIDC token service URL
+  url             = "https://token.actions.githubusercontent.com" # GH's OIDC token service URL
   client_id_list  = ["sts.amazonaws.com"] # AWS STS service is the intended audience for the tokens
   thumbprint_list = ["6938fd4d98bab03faadb97b34396831e3780aea1"] # GitHub's thumbprint from https://awsfundamentals.com/blog/github-actions-to-aws
 }
