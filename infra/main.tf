@@ -168,3 +168,63 @@ resource "aws_route53_record" "www" {
     evaluate_target_health = false
   }
 }
+# Resource for AWS OIDC indentity provider that trusts Github, this will tell AWS that GH tokens are ok to be trusted
+resource "aws_iam_openid_connect_provider" "github" {
+  url             = "https://token.actions.githubusercontent.com" # GH's OIDC token service URL
+  client_id_list  = ["sts.amazonaws.com"] # AWS STS service is the intended audience for the tokens
+  thumbprint_list = ["6938fd4d98bab03faadb97b34396831e3780aea1"] # GitHub's thumbprint from https://awsfundamentals.com/blog/github-actions-to-aws
+}
+# IAM Role that GH Actions can assume to get temporary credentials, only works for pushes to main branch.
+resource "aws_iam_role" "gha_s3_publisher_role" {
+  name = "GHA_S3_Publisher"
+
+  # TRUST POLICY: "Allow GitHub Actions to assume this role"
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = "sts:AssumeRoleWithWebIdentity"
+        Principal = {
+          Federated = aws_iam_openid_connect_provider.github.arn
+        }
+        Condition = {
+          StringEquals = {
+            "token.actions.githubusercontent.com:aud" = "sts.amazonaws.com",
+            "token.actions.githubusercontent.com:sub" = "repo:henriquezw/cloud-resume-challenge:ref:refs/heads/main"
+          }
+        }
+      }
+    ]
+  })
+}
+# The policy that allows the above role to upload files to S3, and optionally invalidate CloudFront cache when needed. This policy is attached to the role.
+resource "aws_iam_role_policy" "s3_publish_policy" {
+  name = "s3-publish-policy"
+  role = aws_iam_role.gha_s3_publisher_role.id
+
+  # PERMISSIONS POLICY: "Allow uploading files to the specific bucket"
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "s3:PutObject",
+          "s3:DeleteObject", # Needed for 'sync --delete'
+          "s3:ListBucket"    # Needed to check what files exist
+        ]
+        Resource = [
+            aws_s3_bucket.website_bucket.arn,
+            "${aws_s3_bucket.website_bucket.arn}/*"
+        ]
+      },
+      {
+      # Allow CloudFront Invalidation, clearlring CF cache
+        Effect = "Allow"
+        Action = "cloudfront:CreateInvalidation"
+        Resource = aws_cloudfront_distribution.cdn.arn
+      }
+    ]
+  })
+}
