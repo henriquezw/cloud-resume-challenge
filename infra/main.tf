@@ -168,3 +168,21 @@ resource "aws_route53_record" "www" {
     evaluate_target_health = false
   }
 }
+resource "aws_iam_role" "GHA_S3_Publisher_Role" {
+name = "GHA_S3_Publisher"
+
+  assume_role_policy = jsonencode({
+    "Version": "2012-10-17",
+    "Statement": [
+      {
+        "Effect": "Allow",
+        "Action": [
+          "s3:PutObject",
+          "s3:PutObjectAcl",
+          "s3:GetObject"
+        ],
+        "Resource": "arn:aws:s3:::${aws_s3_bucket.website_bucket.id}/*"
+      }
+    ]
+  })
+}
