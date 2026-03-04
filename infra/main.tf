@@ -303,3 +303,57 @@ resource "aws_lambda_function" "visitor_counter" {
     }
   }
 }
+# --- 1. THE HTTP API ---
+resource "aws_apigatewayv2_api" "http_api" {
+  name          = "visitor_counter_api"
+  protocol_type = "HTTP"
+
+  # CORS configuration is CRITICAL for the frontend to talk to the backend
+  cors_configuration {
+    allow_origins = ["https://henriquezw.click/"] # You can lock this down to "https://henriquezw.click" later
+    allow_methods = ["GET", "POST", "OPTIONS"]
+    allow_headers = ["Content-Type"]
+    max_age       = 300
+  }
+}
+
+# --- THE STAGE (AUTO-DEPLOY) ---
+resource "aws_apigatewayv2_stage" "default_stage" {
+  api_id      = aws_apigatewayv2_api.http_api.id
+  name        = "$default"
+  auto_deploy = true
+}
+
+# --- THE INTEGRATION (CONNECT API TO LAMBDA) ---
+resource "aws_apigatewayv2_integration" "lambda_integration" {
+  api_id           = aws_apigatewayv2_api.http_api.id
+  integration_type = "AWS_PROXY"
+  
+  # Tells the API Gateway exactly which Lambda to trigger
+  integration_uri  = aws_lambda_function.visitor_counter.invoke_arn
+}
+
+# --- THE ROUTE (THE URL PATH) ---
+resource "aws_apigatewayv2_route" "default_route" {
+  api_id    = aws_apigatewayv2_api.http_api.id
+  route_key = "ANY /" # Triggers on any method at the root URL
+  target    = "integrations/${aws_apigatewayv2_integration.lambda_integration.id}"
+}
+
+# --- LAMBDA PERMISSION (THE BOUNCER FOR THE API) ---
+resource "aws_lambda_permission" "api_gw_permission" {
+  statement_id  = "AllowExecutionFromAPIGateway"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.visitor_counter.function_name
+  principal     = "apigateway.amazonaws.com"
+
+  # Restricts permission so ONLY this specific API can trigger the Lambda
+  source_arn = "${aws_apigatewayv2_api.http_api.execution_arn}/*/*"
+}
+
+# --- OUTPUT THE PUBLIC URL ---
+# This prints the final API URL in your terminal so you can copy/paste it into your frontend code
+output "api_endpoint" {
+  description = "The public URL for your Visitor Counter API"
+  value       = aws_apigatewayv2_api.http_api.api_endpoint
+}
