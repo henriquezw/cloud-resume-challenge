@@ -1,10 +1,10 @@
 terraform {
-    required_providers {
-        aws = {
-            source  = "hashicorp/aws"
-            version = "~> 4.0"
-        }
-    }  
+  required_providers {
+    aws = {
+      source  = "hashicorp/aws"
+      version = "~> 4.0"
+    }
+  }
 }
 provider "aws" {
   region = "us-east-1"
@@ -12,8 +12,8 @@ provider "aws" {
 
 # S3 bucket for static website hosting
 resource "aws_s3_bucket" "website_bucket" {
-    bucket = "henriquedz-resume-site"
-    force_destroy = true
+  bucket        = "henriquedz-resume-site"
+  force_destroy = true
 
 }
 
@@ -171,8 +171,8 @@ resource "aws_route53_record" "www" {
 # Resource for AWS OIDC indentity provider that trusts Github, this will tell AWS that GH tokens are ok to be trusted
 resource "aws_iam_openid_connect_provider" "github" {
   url             = "https://token.actions.githubusercontent.com" # GH's OIDC token service URL
-  client_id_list  = ["sts.amazonaws.com"] # AWS STS service is the intended audience for the tokens
-  thumbprint_list = ["6938fd4d98bab03faadb97b34396831e3780aea1"] # GitHub's thumbprint from https://awsfundamentals.com/blog/github-actions-to-aws
+  client_id_list  = ["sts.amazonaws.com"]                         # AWS STS service is the intended audience for the tokens
+  thumbprint_list = ["6938fd4d98bab03faadb97b34396831e3780aea1"]  # GitHub's thumbprint from https://awsfundamentals.com/blog/github-actions-to-aws
 }
 # IAM Role that GH Actions can assume to get temporary credentials, only works for pushes to main branch.
 resource "aws_iam_role" "gha_s3_publisher_role" {
@@ -215,16 +215,91 @@ resource "aws_iam_role_policy" "s3_publish_policy" {
           "s3:ListBucket"    # Needed to check what files exist
         ]
         Resource = [
-            aws_s3_bucket.website_bucket.arn,
-            "${aws_s3_bucket.website_bucket.arn}/*"
+          aws_s3_bucket.website_bucket.arn,
+          "${aws_s3_bucket.website_bucket.arn}/*"
         ]
       },
       {
-      # Allow CloudFront Invalidation, clearlring CF cache
-        Effect = "Allow"
-        Action = "cloudfront:CreateInvalidation"
+        # Allow CloudFront Invalidation, clearlring CF cache
+        Effect   = "Allow"
+        Action   = "cloudfront:CreateInvalidation"
         Resource = aws_cloudfront_distribution.cdn.arn
       }
     ]
   })
+}
+# --- LAMBDA FUNCTION (Visitor Counter) ---
+data "archive_file" "lambda_zip" {
+  type = "zip"
+  # grab the Python file
+  source_file = "${path.module}/../backend/lambda_function.py"
+  # and zip it
+  output_path = "${path.module}/lambda_function.zip"
+}
+# --- IAM ROLE FOR LAMBDA ---
+# The Trust Policy: Allows the Lambda service to assume this role
+resource "aws_iam_role" "lambda_exec_role" {
+  name = "visitor_counter_lambda_role"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Action = "sts:AssumeRole"
+      Effect = "Allow"
+      Principal = {
+        Service = "lambda.amazonaws.com"
+      }
+    }]
+  })
+}
+
+# --- IAM POLICY (DYNAMODB PERMISSIONS) ---
+# The Key Card: Gives the role permission to update your specific DynamoDB table
+resource "aws_iam_role_policy" "lambda_dynamodb_policy" {
+  name = "lambda_dynamodb_policy"
+  role = aws_iam_role.lambda_exec_role.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "dynamodb:UpdateItem",
+          "dynamodb:GetItem"
+        ]
+        # Dynamically grabs the ARN of the table you created earlier!
+        Resource = aws_dynamodb_table.visitor_count.arn
+      },
+      {
+        # Basic permissions so Lambda can write error logs to CloudWatch
+        Effect = "Allow"
+        Action = [
+          "logs:CreateLogGroup",
+          "logs:CreateLogStream",
+          "logs:PutLogEvents"
+        ]
+        Resource = "arn:aws:logs:*:*:*"
+      }
+    ]
+  })
+}
+
+# --- THE LAMBDA FUNCTION ---
+resource "aws_lambda_function" "visitor_counter" {
+  filename      = data.archive_file.lambda_zip.output_path
+  function_name = "VisitorCounter"
+  role          = aws_iam_role.lambda_exec_role.arn
+  handler       = "lambda_function.lambda_handler"
+
+  # This hash tells Terraform to re-deploy if it detects changes in python file
+  source_code_hash = data.archive_file.lambda_zip.output_base64sha256
+
+  runtime = "python3.9"
+
+  environment {
+    variables = {
+      TABLE_NAME = aws_dynamodb_table.visitor_count.name
+    }
+  }
 }
