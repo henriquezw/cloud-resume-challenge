@@ -28,13 +28,16 @@ resource "aws_s3_bucket_public_access_block" "website_bucket_block" {
 # --- DYNAMODB TABLE (Visitor Counter) ---
 resource "aws_dynamodb_table" "visitor_count" {
   name         = "visitor-count-table"
-  billing_mode = "PAY_PER_REQUEST" # Free Tier friendly (Serverless)
+  billing_mode = "PROVISIONED" # Free Tier friendly (Serverless)
+  read_capacity  = 20
+  write_capacity = 20
   hash_key     = "id"
 
   attribute {
     name = "id"
     type = "S" # S = String
   }
+  table_class = "STANDARD"
 }
 # --- VARIABLES ---
 locals {
