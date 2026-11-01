@@ -3,6 +3,8 @@ name: Deploy to S3
 on:
   push:
     branches: [ main ]
+    paths:
+      - 'frontend/index.html'
   workflow_dispatch: 
 jobs:
   upload:
