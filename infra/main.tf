@@ -108,6 +108,7 @@ resource "aws_cloudfront_distribution" "cdn" {
     allowed_methods  = ["GET", "HEAD"]
     cached_methods   = ["GET", "HEAD"]
     target_origin_id = "S3-Origin"
+    response_headers_policy_id = aws_cloudfront_response_headers_policy.security_headers.id
 
     forwarded_values {
       query_string = false
@@ -312,11 +313,19 @@ resource "aws_apigatewayv2_api" "http_api" {
   protocol_type = "HTTP"
 
   # CORS configuration is CRITICAL for the frontend to talk to the backend
-  cors_configuration {
-    allow_origins = ["https://henriquezw.click/"] # You can lock this down to "https://henriquezw.click" later
-    allow_methods = ["GET", "POST", "OPTIONS"]
-    allow_headers = ["Content-Type"]
-    max_age       = 300
+ cors_configuration {
+    # Strictly your production domain. No trailing slash.
+    allow_origins = ["https://henriquezw.click"] 
+    
+    # Restrict to only the exact methods your frontend uses
+    allow_methods = ["POST", "GET", "OPTIONS"] 
+    
+    # Restrict to only the headers your frontend sends
+    allow_headers = ["content-type"] 
+    
+    # Cache the preflight approval for 24 hours (86400 seconds) 
+    # to drastically reduce API Gateway request volume
+    max_age       = 86400 
   }
 }
 
@@ -364,4 +373,47 @@ resource "aws_lambda_permission" "api_gw_permission" {
 output "api_endpoint" {
   description = "The public URL for your Visitor Counter API"
   value       = aws_apigatewayv2_api.http_api.api_endpoint
+}
+
+# --- Cloudfront security headers policy --- 
+resource "aws_cloudfront_response_headers_policy" "security_headers" {
+  name = "resume-security-headers"
+
+  security_headers_config {
+    strict_transport_security {
+      access_control_max_age_sec = 31536000
+      include_subdomains         = true
+      preload                    = true
+      override                   = true
+    }
+    content_type_options {
+      override = true
+    }
+    xss_protection {
+      mode_block = true
+      protection = true
+      override   = true
+    }
+    frame_options {
+      frame_option = "DENY"
+      override     = true
+    }
+  }
+}
+
+# --- Budget ---
+resource "aws_budgets_budget" "budget_1usd" {
+  name              = "resume-challenge-budget"
+  budget_type       = "COST"
+  limit_amount      = "1.0"
+  limit_unit        = "USD"
+  time_unit         = "MONTHLY"
+
+  notification {
+    comparison_operator        = "GREATER_THAN"
+    threshold                  = 100
+    threshold_type             = "PERCENTAGE"
+    notification_type          = "ACTUAL"
+    subscriber_email_addresses = ["henriquederlam@gmail.com"]
+  }
 }
