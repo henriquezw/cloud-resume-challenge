@@ -2,7 +2,7 @@ terraform {
   required_providers {
     aws = {
       source  = "hashicorp/aws"
-      version = "~> 4.0"
+      version = ">= 6.21.0"
     }
   }
 }
@@ -295,11 +295,11 @@ resource "aws_lambda_function" "visitor_counter" {
   function_name = "VisitorCounter"
   role          = aws_iam_role.lambda_exec_role.arn
   handler       = "lambda_function.lambda_handler"
-  reserved_concurrent_executions = 10
+
   # This hash tells Terraform to re-deploy if it detects changes in python file
   source_code_hash = data.archive_file.lambda_zip.output_base64sha256
 
-  runtime = "python3.9"
+  runtime = "python3.14"
 
   environment {
     variables = {
