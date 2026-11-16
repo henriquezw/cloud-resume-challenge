@@ -5,6 +5,13 @@ terraform {
       version = ">= 6.21.0"
     }
   }
+  backend "s3" {
+    bucket       = "tf-state-2083yruh"
+    key          = "cloud-resume/terraform.tfstate"
+    region       = "us-east-1"
+    encrypt      = true
+    use_lockfile = true
+  }
 }
 provider "aws" {
   region = "us-east-1"
@@ -431,9 +438,24 @@ resource "aws_iam_role_policy" "gha_tf_apply_policy" {
           "budgets:ListTagsForResource"
         ]
         Resource = "arn:aws:budgets::153026212946:budget/resume-challenge-budget"
+      },
+      {
+        Sid    = "TerraformRemoteState"
+        Effect = "Allow"
+        Action = [
+          "s3:ListBucket",
+          "s3:GetObject",
+          "s3:PutObject",
+          "s3:DeleteObject"
+        ]
+        Resource = [
+          "arn:aws:s3:::tf-state-2083yruh",
+          "arn:aws:s3:::tf-state-2083yruh/*"
+        ]
       }
     ]
   })
+  
 }
 # --- LAMBDA FUNCTION (Visitor Counter) ---
 data "archive_file" "lambda_zip" {
