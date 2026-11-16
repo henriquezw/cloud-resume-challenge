@@ -232,6 +232,209 @@ resource "aws_iam_role_policy" "s3_publish_policy" {
     ]
   })
 }
+resource "aws_iam_role" "gha_tf_apply_role" {
+  name = "GHA_TF_Apply"
+
+  # TRUST POLICY: "Allow GitHub Actions to assume this role"
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = "sts:AssumeRoleWithWebIdentity"
+        Principal = {
+          Federated = aws_iam_openid_connect_provider.github.arn
+        }
+        Condition = {
+          StringEquals = {
+            "token.actions.githubusercontent.com:aud" = "sts.amazonaws.com",
+            "token.actions.githubusercontent.com:sub" = "repo:henriquezw/cloud-resume-challenge:ref:refs/heads/main"
+          }
+        }
+      }
+    ]
+    
+  })
+}
+# -- - IAM POLICY: "Allow Terraform to manage required resources"
+resource "aws_iam_role_policy" "gha_tf_apply_policy" {
+  name = "gha-tf-apply-policy"
+  role = aws_iam_role.gha_tf_apply_role.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid    = "GlobalReads"
+        Effect = "Allow"
+        Action = [
+          "sts:GetCallerIdentity",
+          "route53:ListHostedZones",
+          "route53:GetChange"
+        ]
+        Resource = "*"
+      },
+      {
+        Sid    = "S3WebsiteBucket"
+        Effect = "Allow"
+        Action = [
+          "s3:CreateBucket",
+          "s3:DeleteBucket",
+          "s3:ListBucket",
+          "s3:GetBucket*",
+          "s3:PutBucket*",
+          "s3:DeleteBucketPolicy",
+          "s3:GetAccelerateConfiguration",
+          "s3:GetLifecycleConfiguration",
+          "s3:GetReplicationConfiguration",
+          "s3:GetEncryptionConfiguration",
+          "s3:ListTagsForResource"
+        ]
+        Resource = [
+          "arn:aws:s3:::henriquedz-resume-site",
+          "arn:aws:s3:::henriquedz-resume-site/*",
+          "arn:aws:s3:us-east-1:153026212946:access-grants/default"
+        ]
+      },
+      {
+        Sid    = "DynamoDB"
+        Effect = "Allow"
+        Action = [
+          "dynamodb:CreateTable",
+          "dynamodb:DeleteTable",
+          "dynamodb:UpdateTable",
+          "dynamodb:DescribeTable",
+          "dynamodb:DescribeContinuousBackups",
+          "dynamodb:DescribeTimeToLive",
+          "dynamodb:ListTagsOfResource",
+          "dynamodb:TagResource",
+          "dynamodb:UntagResource"
+        ]
+        Resource = "arn:aws:dynamodb:us-east-1:153026212946:table/visitor-count-table"
+      },
+      {
+        Sid    = "ACM"
+        Effect = "Allow"
+        Action = [
+          "acm:RequestCertificate",
+          "acm:DeleteCertificate",
+          "acm:DescribeCertificate",
+          "acm:ListTagsForCertificate",
+          "acm:AddTagsToCertificate",
+          "acm:RemoveTagsFromCertificate"
+        ]
+        Resource = "arn:aws:acm:us-east-1:153026212946:certificate/*"
+      },
+      {
+        Sid    = "Route53"
+        Effect = "Allow"
+        Action = [
+          "route53:GetHostedZone",
+          "route53:ChangeResourceRecordSets",
+          "route53:ListResourceRecordSets",
+          "route53:ListTagsForResource"
+        ]
+        Resource = [
+          "arn:aws:route53:::hostedzone/Z08920172E3TE8VFQHKCR",
+          "arn:aws:route53:::healthcheck/*"
+        ]
+      },
+      {
+        Sid    = "CloudFront"
+        Effect = "Allow"
+        Action = [
+          "cloudfront:CreateDistribution",
+          "cloudfront:UpdateDistribution",
+          "cloudfront:DeleteDistribution",
+          "cloudfront:GetDistribution",
+          "cloudfront:GetDistributionConfig",
+          "cloudfront:CreateOriginAccessControl",
+          "cloudfront:UpdateOriginAccessControl",
+          "cloudfront:DeleteOriginAccessControl",
+          "cloudfront:GetOriginAccessControl",
+          "cloudfront:GetOriginAccessControlConfig",
+          "cloudfront:CreateResponseHeadersPolicy",
+          "cloudfront:UpdateResponseHeadersPolicy",
+          "cloudfront:DeleteResponseHeadersPolicy",
+          "cloudfront:GetResponseHeadersPolicy",
+          "cloudfront:GetResponseHeadersPolicyConfig",
+          "cloudfront:ListTagsForResource",
+          "cloudfront:TagResource",
+          "cloudfront:UntagResource"
+        ]
+        Resource = "*"
+      },
+      {
+        Sid    = "IAMRolesAndOIDC"
+        Effect = "Allow"
+        Action = [
+          "iam:CreateRole",
+          "iam:DeleteRole",
+          "iam:GetRole",
+          "iam:UpdateRole",
+          "iam:UpdateAssumeRolePolicy",
+          "iam:PassRole",
+          "iam:PutRolePolicy",
+          "iam:GetRolePolicy",
+          "iam:DeleteRolePolicy",
+          "iam:ListRolePolicies",
+          "iam:ListAttachedRolePolicies",
+          "iam:GetOpenIDConnectProvider",
+          "iam:CreateOpenIDConnectProvider",
+          "iam:DeleteOpenIDConnectProvider",
+          "iam:UpdateOpenIDConnectProviderThumbprint"
+        ]
+        Resource = [
+          "arn:aws:iam::153026212946:role/GHA_S3_Publisher",
+          "arn:aws:iam::153026212946:role/GHA_TF_Apply",
+          "arn:aws:iam::153026212946:role/visitor_counter_lambda_role",
+          "arn:aws:iam::153026212946:oidc-provider/token.actions.githubusercontent.com"
+        ]
+      },
+      {
+        Sid    = "Lambda"
+        Effect = "Allow"
+        Action = [
+          "lambda:CreateFunction",
+          "lambda:DeleteFunction",
+          "lambda:GetFunction",
+          "lambda:GetFunctionConfiguration",
+          "lambda:GetFunctionCodeSigningConfig",
+          "lambda:UpdateFunctionCode",
+          "lambda:UpdateFunctionConfiguration",
+          "lambda:ListVersionsByFunction",
+          "lambda:AddPermission",
+          "lambda:RemovePermission",
+          "lambda:GetPolicy"
+        ]
+        Resource = "arn:aws:lambda:us-east-1:153026212946:function:VisitorCounter"
+      },
+      {
+        Sid    = "APIGateway"
+        Effect = "Allow"
+        Action = [
+          "apigateway:GET",
+          "apigateway:POST",
+          "apigateway:PATCH",
+          "apigateway:PUT",
+          "apigateway:DELETE"
+        ]
+        Resource = "arn:aws:apigateway:us-east-1::/apis*"
+      },
+      {
+        Sid    = "Budgets"
+        Effect = "Allow"
+        Action = [
+          "budgets:ViewBudget",
+          "budgets:ModifyBudget",
+          "budgets:CreateBudgetAction",
+          "budgets:ListTagsForResource"
+        ]
+        Resource = "arn:aws:budgets::153026212946:budget/resume-challenge-budget"
+      }
+    ]
+  })
+}
 # --- LAMBDA FUNCTION (Visitor Counter) ---
 data "archive_file" "lambda_zip" {
   type = "zip"
