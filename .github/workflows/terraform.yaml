@@ -3,7 +3,20 @@ name: Deploy Lambda
 on:
   push:
     branches: [ main ]
-  workflow_dispatch: 
+    paths:
+      - "infra/*"
+      - "backend/*"
+      - ".github/workflows/terraform.yml"
+  workflow_dispatch:
+    inputs:
+      action:
+        description: "Plan or apply (apply is destructive — review the plan first)"
+        required: true
+        default: "plan"
+        type: choice
+        options:
+          - plan
+          - apply
 jobs:
   upload:
     runs-on: ubuntu-latest
@@ -19,5 +32,5 @@ jobs:
     - name: Configure AWS credentials
       uses: aws-actions/configure-aws-credentials@v4
       with:
-        role-to-assume: ${{ secrets.GHA_S3_PUBLISHER_ROLE_ARN_AWS }} # need lambda role
+        role-to-assume: ${{ secrets.GHA_S3_PUBLISHER_ROLE_ARN_AWS }} # need for getting the trust policy for OIDC credentials
         aws-region: us-east-1
